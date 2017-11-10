@@ -1,0 +1,129 @@
+
+##### target website: www.cars.com
+
+import requests
+from bs4 import BeautifulSoup
+from time import ctime,sleep
+import threading
+import csv
+import random
+import time
+
+#### individual car page url : https://www.cars.com/vehicledetail/detail/715123995/overview/
+#### list page url: "https://www.cars.com/for-sale/searchresults.action/?page=1&perPage=100&rd=250&searchSource=PAGINATION&sort=relevance&stkTypId=28881&zc=75080&moveTo=listing-712749223"
+####  all the data needed can be obtrained from the list page, and scraping list page is more efficient in terms of num of requests 
+     and num of data entries from each requests.
+     
+#### bodystyle and make are represented by unique ID, get those ID first.
+
+response = requests.get("https://www.cars.com/for-sale/searchresults.action/?bsId=20211&page=50&perPage=100&rd=250&searchSource=PAGINATION&sort=relevance&stkTypId=28881&zc=75080")
+response.status_code
+soup = BeautifulSoup(response.content,"html.parser")
+makes = soup.select(".mkId .checkbox input")
+makeID_dict = {}   ##### keys are make name, values are makeID used on the website
+for make in makes:
+    make_name = make.text.strip()
+    makeID_dict[make_name] = make["value"]
+
+#### bodystyle ID:  Sedan: 20211 SUV: 20217 
+#### we will only be scraping data for these two bodystyles 
+    
+#### build components
+
+def html_download(url,tries):
+    headers = {'User-Agent': 'Chrome/53.0.2785.143'}    
+    response = requests.get(url=url,headers=headers)
+    if response.status_code == 200:
+        print("successful")
+        html = response.content
+    else:
+        while tries > 0:
+            tries -= 1
+            try:
+                html_download(url,tries)
+                
+            except requests.exceptions as e:         
+                print('Download Failed ',e ,"trying again")
+                continue
+        html = None       
+    return html
+    
+def html_parser(html):
+    soup = BeautifulSoup(html,"html.parser")
+    car_titles = soup.find_all("h2",class_="cui-delta listing-row__title")
+    car_prices = soup.find_all("span",class_="listing-row__price")
+    others = soup.find_all("div",class_="listing-row__meta")
+    conditions = soup.find_all("div",class_="listing-row__pricing-meta")
+    for i in range(len(car_titles)):
+        try:
+            title.append(car_titles[i].text.strip())
+            price.append(car_prices[i].text.strip())
+            other.append(others[i].text.strip())
+            condition.append(conditions[i].text.strip())
+        except Exception:
+            continue
+            
+### the list of make names that i am interested in  
+interest_list = ["Audi","Buick","BMW","Ford","Cadillac","Chevrolet","Dodge","Honda","Hyundai","INFINITI","Jaguar","Kia","Lexus","Lincoln","Mazda","Mercedes-Benz","Nissan","Subaru","Toyota","Volkswagen","Acura"]
+ 
+### initial URL
+start_url = "https://www.cars.com/for-sale/searchresults.action/?bsId={}&mkId={}&page={}&perPage=100&rd=250&searchSource=GN_REFINEMENT&sort=relevance&stkTypId=28881&zc=75080"
+  
+#### main part 
+program_start = time.time()
+writer = csv.writer(open('~/cars_data.csv','w'))
+for bdstyle in [20211,20217]
+    for make_name in interest_list:
+        title = []
+        price = []
+        condition = []
+        other = []
+        for page in range(10):
+            current_url = start_url.format(bdstyle,makeID_dict[make_name],page+1)
+            download_start = time.time()
+            html = html_download(current_url,tries=3)
+            download_end = time.time()
+            download_time = download_end - download_start
+            print("on {}, page {}, took {} seconds for downloading".format(make_name,page+1,download_time))
+            time.sleep(random.randint(1,20))
+            parse_start = time.time()
+            soup_test = BeautifulSoup(html,"html.parser")
+            if soup_test.find_all("h2",class_="cui-delta listing-row__title") == []:
+                break
+            else:
+                html_parser(html)
+                parse_end = time.time()
+                parse_time = parse_end - parse_start
+                print("There are {} items in lists, took {} seconds to parse".format(len(title),parse_time))
+        print("Finish downloading {}, start writing to to csv ".format(make_name))    
+        total = len(title)
+        write_start = time.time()
+        for i in range(total):
+            row = []
+            row.append(title[i])
+            row.append(price[i])
+            row.append(condition[i])
+            row.append(other[i])
+            writer.writerow(row)
+        write_end = time.time()
+        write_time= write_end - write_start
+        print("Finish writing {}, took {} seconds to write".format(make_name,write_time))
+program_end = time.time()
+program_time = program_end - program_start
+print("All Done, took {} in total".format(program_time))
+            
+            
+        
+        
+        
+        
+    
+
+  
+  
+  
+  
+  
+  
+  
+  
