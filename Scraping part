@@ -17,7 +17,7 @@ import time
 #### bodystyle and make are represented by unique ID, get those ID first.
 
 response = requests.get("https://www.cars.com/for-sale/searchresults.action/?bsId=20211&page=50&perPage=100&rd=250&searchSource=PAGINATION&sort=relevance&stkTypId=28881&zc=75080")
-response.status_code
+print(response.status_code)
 soup = BeautifulSoup(response.content,"html.parser")
 makes = soup.select(".mkId .checkbox input")
 makeID_dict = {}   ##### keys are make name, values are makeID used on the website
